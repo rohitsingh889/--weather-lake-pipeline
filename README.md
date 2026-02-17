@@ -39,6 +39,67 @@ Open-Meteo Archive API
 
 ---
 
+## 🔄 End-to-End Data Lifecycle (Step-Wise)
+
+The pipeline follows a structured **Extract → Transform → Load → Analytics** workflow.
+
+---
+
+### 1️⃣ Extract Phase – API Ingestion
+
+✔ Weather data retrieved from Open-Meteo Archive API  
+✔ Python used as ingestion engine  
+✔ REST calls executed via `requests` module  
+✔ Raw JSON responses preserved  
+
+Output:
+
+→ Raw JSON stored in Bronze layer (Amazon S3)
+
+---
+
+### 2️⃣ Transform Phase – Silver Processing (AWS Glue)
+
+✔ Partition-specific Bronze data read  
+✔ Nested arrays flattened  
+✔ Timestamps parsed  
+✔ Data types standardized  
+✔ Duplicate records removed  
+✔ Data Quality checks enforced  
+
+Output:
+
+→ Cleaned Parquet datasets written to Silver layer
+
+---
+
+### 3️⃣ Load Phase – Gold Aggregation (AWS Glue)
+
+✔ Silver datasets aggregated into daily metrics  
+✔ Business-friendly schema produced  
+✔ Dataset optimized for analytics  
+
+Output:
+
+→ Analytics-ready Parquet datasets written to Gold layer
+
+---
+
+### 4️⃣ Analytics Phase – Query & BI Consumption
+
+✔ Glue Crawler infers schema  
+✔ Glue Data Catalog stores metadata  
+✔ Athena executes SQL queries  
+✔ Power BI consumes Gold datasets  
+
+Purpose:
+
+→ Business intelligence & reporting
+
+---
+
+---
+
 ## 🧩 Technologies & Tools Used
 
 | Category | Technology / Tool | Purpose |
@@ -204,10 +265,6 @@ Bad data → Job fails intentionally.
 
 ---
 
----
-
----
-
 ### 🚦 Data Quality Enforcement Strategy
 
 Silver layer transformations implement a **fail-fast validation model**:
@@ -220,15 +277,13 @@ Invalid records trigger controlled job failure to prevent downstream corruption.
 
 **Future Enhancement – Quarantine Pattern**
 
-In production-grade systems, invalid records are often redirected to a **quarantine / dead-letter zone** for inspection rather than failing the entire job.
-
 Planned extension:
 
 ✔ Redirect invalid rows to `silver/quarantine/`  
 ✔ Enable root-cause analysis  
 ✔ Preserve pipeline continuity  
 
-Current implementation prioritizes correctness and data integrity.
+---
 
 ## 📊 Gold Layer – Analytics Zone
 
@@ -288,8 +343,6 @@ Mechanism:
 .option("replaceWhere", "date = 'YYYY-MM-DD'")
 ```
 
-Industry-standard batch incremental design.
-
 ---
 
 ---
@@ -308,38 +361,13 @@ Airflow is the **central control plane** of the pipeline.
 ✔ Trigger Glue Crawler  
 ✔ Retry & failure handling  
 
-Execution order:
-
-1. API Extraction  
-2. Silver Glue Job  
-3. Gold Glue Job  
-4. Glue Crawler  
-
 ---
 
 ### Dockerized Airflow Environment
 
-Airflow runs locally inside Docker for:
-
-✔ Environment reproducibility  
-✔ Dependency isolation  
-✔ Easy configuration  
+✔ Local reproducible setup  
+✔ Containerized execution  
 ✔ Cloud orchestration simulation  
-
----
-
-### DAG Location & Module Design
-
-Airflow container contains:
-
-✔ DAG file  
-✔ API client module  
-✔ Extraction logic  
-✔ S3 writer module  
-
-All ingestion modules placed in **same DAG directory** for simplified imports.
-
-Glue jobs run independently on AWS.
 
 ---
 
@@ -347,34 +375,24 @@ Glue jobs run independently on AWS.
 
 ## 🧾 Metadata & Schema Management
 
-### AWS Glue Crawler
-
-✔ Infers Parquet schema  
-✔ Detects partitions  
-✔ Updates Data Catalog  
-
----
-
-### AWS Glue Data Catalog
-
-✔ Stores table definitions  
-✔ Enables Athena SQL querying  
+✔ Glue Crawler infers schema  
+✔ Glue Data Catalog stores tables  
 
 ---
 
 ---
 
-## 🔍 Query Layer – Amazon Athena
+## 🔍 Querying Gold Data with Amazon Athena
 
-Athena enables SQL queries directly on S3 datasets.
+Amazon Athena enables **SQL querying directly on S3 Parquet datasets**.
 
 ---
 
-### Benefits
+### Why Athena?
 
 ✔ No infrastructure management  
-✔ Pay-per-query model  
-✔ Works with Glue Catalog  
+✔ Pay-per-query pricing  
+✔ Glue Catalog integration  
 
 ---
 
@@ -386,7 +404,23 @@ FROM gold_weather
 WHERE date = DATE '2026-02-16';
 ```
 
-Supports analytics, filtering, aggregations.
+---
+
+### Common Analytics Queries
+
+```sql
+-- Hottest city
+SELECT city, max_temperature
+FROM gold_weather
+ORDER BY max_temperature DESC
+LIMIT 1;
+
+-- Daily trend
+SELECT date, avg_temperature
+FROM gold_weather
+WHERE city = 'Delhi'
+ORDER BY date;
+```
 
 ---
 
@@ -394,66 +428,24 @@ Supports analytics, filtering, aggregations.
 
 ## 📈 BI / Visualization Layer – Power BI
 
-Gold datasets are designed for BI consumption.
-
----
-
-### Integration Strategy
-
-✔ Athena used as query backend  
-✔ Power BI connects via Athena connector  
-✔ Enables dashboarding & reporting  
-
----
-
-### Dashboard Intent
+✔ Athena used as SQL backend  
+✔ Gold datasets optimized for dashboards  
 
 Planned visuals:
 
 ✔ Temperature trends  
 ✔ City comparisons  
 ✔ KPI metrics  
-✔ Aggregated insights  
-
-(Dashboard implementation planned as future enhancement.)
 
 ---
 
----
 ---
 
 ## 💰 Cost Optimization Strategy
 
-The pipeline is designed with **query efficiency and cost control** in mind.
-
-Since Amazon Athena follows a **pay-per-data-scanned model**, dataset design directly impacts query cost.
-
-Optimizations implemented:
-
-✔ **Columnar Storage (Parquet)**  
-Parquet significantly reduces scan size compared to raw JSON.
-
-✔ **Partitioning by Date**  
-Silver and Gold layers are partitioned by `date`, ensuring Athena scans only relevant partitions.
-
-✔ **Reduced Dataset Size in Gold Layer**  
-Gold layer stores aggregated daily metrics, minimizing query overhead.
-
-Result:
-
-→ Faster queries  
-→ Lower Athena costs  
-→ Production-aligned data lake design
-
-## ✅ Key Data Engineering Concepts Demonstrated
-
-✔ Data Lake Layering (Bronze / Silver / Gold)  
-✔ Distributed ETL using Spark  
-✔ Incremental Batch Processing  
-✔ Partition-Aware Design  
-✔ Data Quality Enforcement  
-✔ Cloud-Orchestrated Workflows  
-✔ Metadata-Driven Analytics  
+✔ Parquet columnar format  
+✔ Partitioned datasets  
+✔ Reduced Athena scan costs  
 
 ---
 
