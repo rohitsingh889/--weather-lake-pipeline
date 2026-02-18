@@ -386,7 +386,7 @@ Airflow acts as the **central control plane** of the pipeline, coordinating task
 
 ![Project Overview](https://github.com/rohitsingh889/--weather-lake-pipeline/blob/main/PICS/Airflow%20graph.png)
 
-**Airflow DAG**
+
 
 ![Project Overview](https://github.com/rohitsingh889/--weather-lake-pipeline/blob/main/PICS/airflow.png)
 
@@ -499,7 +499,7 @@ Ensure the following tools are installed:
 ✔ Docker  
 ✔ Docker Compose  
 ✔ AWS CLI  
-✔ Python (optional for local testing)
+✔ Python 
 
 Verify installations:
 
@@ -565,7 +565,8 @@ project-root/
     dags/
         weather_pipeline_dag.py
         extraction.py
-        glue_helpers.py
+        s3_writer.py
+        api_client.py
 ```
 
 This allows Airflow to automatically discover and execute tasks.
