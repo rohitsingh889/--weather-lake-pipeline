@@ -1,6 +1,6 @@
 # 🌦 Incremental Weather Data Lake Pipeline on AWS
 
-![Project Overview](https://github.com/rohitsingh889/Weather-Data-Pipeline-on-AWS/blob/main/PICS/final%20pipeline.png)
+![Project Overview](https://github.com/rohitsingh889/--weather-lake-pipeline/blob/main/PICS/final%20pipeline.png)
 This project implements a production-style **batch data engineering pipeline** that ingests historical weather data from the **Open-Meteo Archive API**, stores immutable raw data in Amazon S3, performs distributed transformations using **AWS Glue (PySpark)**, generates analytics-ready datasets, and enables SQL-based querying via **AWS Glue Data Catalog and Amazon Athena** — fully orchestrated by **Apache Airflow in a Dockerized local environment**.
 
 **Data Source API:** https://open-meteo.com/
